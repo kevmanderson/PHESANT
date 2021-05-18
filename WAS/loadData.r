@@ -42,39 +42,40 @@ loadData <- function() {
 	phenotype = loadPhenotypes()
 
 	## load trait of interest
-        toi <- loadTraitOfInterest(phenotype)
+	toi <- loadTraitOfInterest(phenotype)
 
-        ## load confounders
-        conf <- loadConfounders(phenotype)
+	## load confounders
+	conf <- loadConfounders(phenotype)
 
 	## add trait of interest to phenotype data frame and remove rows with no trait of interest
 	## merge in toi with phenotype - keep id list from phenotypes file
 	phenotype = merge(toi, phenotype, by="userID", all.y=TRUE, all.x=FALSE)
 	
-        ## remove any rows with no trait of interest
-        idxNotEmpty = which(!is.na(phenotype[,"geno"]))
+	## remove any rows with no trait of interest
+	idxNotEmpty = which(!is.na(phenotype[,"geno"]))
 
 	if (opt$save == TRUE) {
-	        print(paste("Phenotype file has ", nrow(phenotype), " rows.", sep=""))
+		print(paste("Phenotype file has ", nrow(phenotype), " rows.", sep=""))
 	} else {
 		print(paste("Phenotype file has ", nrow(phenotype), " rows with ", length(idxNotEmpty), " not NA for trait of interest (",opt$traitofinterest,").", sep=""))
 	}
 
-        phenotype = phenotype[idxNotEmpty,]
+	phenotype = phenotype[idxNotEmpty,]
 
 	# match ids from not empty phenotypes list
 	confsIdx = which(conf$userID %in% phenotype$userID)
-        conf = conf[confsIdx,]
+	conf = conf[confsIdx,]
 
 	if (nrow(phenotype)==0) {
-	        stop("No examples with row in both trait of interest and phenotype files", call.=FALSE)
+		stop("No examples with row in both trait of interest and phenotype files", call.=FALSE)
 	} else {
-	        print(paste("Phenotype and trait of interest data files merged, with", nrow(phenotype),"examples"))
+		print(paste("Phenotype and trait of interest data files merged, with", nrow(phenotype),"examples"))
 	}
 
 	# some fields are fixed that have a field type as cat single but we want to treat them like cat mult
 	phenotype = fixOddFieldsToCatMul(phenotype)
 
+	phenosToTest = colnames(phenotype)
 	indFields = loadIndicatorFields(colnames(phenotype))
 	
 	d = list(datax=phenotype, confounders=conf, inds=indFields)

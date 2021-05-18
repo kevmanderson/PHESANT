@@ -29,116 +29,116 @@ testAssociations <- function(currentVar, currentVarShort, thisdata) {
 
 		# check if variable info is found for this field
 		if (length(idx)==0) {
-			cat(paste(currentVar, " || Variable could not be found in pheno info file. \n", sep=""))			
+			cat(paste(currentVar, " || Variable could not be found in pheno info file. \n", sep=""))
 			incrementCounter("notinphenofile")
 		}
 		else {
 
-		# get info from variable info file
-		excluded = vl$phenoInfo$EXCLUDED[idx]
-		catSinToMult = vl$phenoInfo$CAT_SINGLE_TO_CAT_MULT[idx]
-		fieldType = vl$phenoInfo$ValueType[idx]
-		isExposure = getIsExposure(currentVarShort) #vl$phenoInfo$EXPOSURE_PHENOTYPE[idx]
-		dateConvert = vl$phenoInfo$DATE_CONVERT[idx]
+			# get info from variable info file
+			excluded = vl$phenoInfo$EXCLUDED[idx]
+			catSinToMult = vl$phenoInfo$CAT_SINGLE_TO_CAT_MULT[idx]
+			fieldType = vl$phenoInfo$ValueType[idx]
+			isExposure = getIsExposure(currentVarShort) #vl$phenoInfo$EXPOSURE_PHENOTYPE[idx]
+			dateConvert = vl$phenoInfo$DATE_CONVERT[idx]
 
-		if (fieldType=="Integer") {		
+			if (fieldType=="Integer") {
 
-			#### INTEGER
-			cat(currentVar, "|| ", sep="")
-			
-			if (excluded!="") {
-				cat(paste("Excluded integer: ", excluded, " || ", sep=""))
-				incrementCounter("excluded.int")
-			}
-			else {
-				incrementCounter("start.int")
-				if (isExposure==TRUE) {
-					incrementCounter("start.exposure.int")
+				#### INTEGER
+				cat(currentVar, "|| ", sep="")
+
+				if (excluded!="") {
+					cat(paste("Excluded integer: ", excluded, " || ", sep=""))
+					incrementCounter("excluded.int")
 				}
-
-			    	testInteger(currentVarShort, "INTEGER", thisdata);
-			}
-			cat("\n");
-	    	}
-		else if (fieldType=="Continuous") {
-
-			#### CONTINUOUS
-			cat(currentVar, "|| ", sep="")
-
-		    	if (excluded!="") {
-				cat(paste("Excluded continuous: ", excluded, " || ", sep=""))
-				incrementCounter("excluded.cont")
-		    	}
-			else {
-				incrementCounter("start.cont")
-				if (isExposure==TRUE) {
-                                        incrementCounter("start.exposure.cont")
-                                }
-				testContinuous(currentVarShort, "CONTINUOUS", thisdata);
-	        	}
-	        	cat("\n");
-		}
-	    	else if (fieldType=="Categorical single" && catSinToMult=="") {
-
-			#### CAT SINGLE
-			cat(currentVar, "|| ", sep="")
-	
-	    		if (excluded!="") {
-				cat(paste("Excluded cat-single: ", excluded, " || ", sep=""))
-				incrementCounter("excluded.catSin")
-			}
-			else {
-				incrementCounter("start.catSin")
-				if (isExposure==TRUE) {
-                                        incrementCounter("start.exposure.catSin")
-                                }
-			    	testCategoricalSingle(currentVarShort, "CAT-SIN", thisdata);
-			}
-			cat("\n");
-	  	}
-		else if (fieldType=="Categorical multiple" || catSinToMult!="") {
-		
-			#### CAT MULTIPLE
-			cat(currentVar, "|| ", sep="")
-
-			if (excluded!="") {
-				cat(paste("Excluded cat-multiple: ", excluded, " || ", sep=""))
-				incrementCounter("excluded.catMul")
-			}
-			else {
-
-				if (catSinToMult!="") {
-					cat("cat-single to cat-multiple || ", sep="")
-					incrementCounter("catSinToCatMul")
-				}
-
-				incrementCounter("start.catMul")	
-				if (isExposure==TRUE) {
-                                        incrementCounter("start.exposure.catMul")
-                                }
 				else {
-					# get number of cat mult values denoting trait of interest
-	                                numVals = getNumValuesCatMultExposure(currentVarShort)
-					if (numVals>0) {
-		                                addToCounts("start.exposure.catMulvalues", numVals)
+					incrementCounter("start.int")
+					if (isExposure==TRUE) {
+						incrementCounter("start.exposure.int")
 					}
+
+					testInteger(currentVarShort, currentVar, "INTEGER", thisdata);
 				}
-		        	testCategoricalMultiple(currentVarShort, "CAT-MUL", thisdata);
+				cat("\n");
 			}
-			cat("\n");
-		}
-		else if (fieldType=="Date" && dateConvert!="") {
+			else if (fieldType=="Continuous") {
 
-			#### DATE TO BE CONVERTED TO BINARY
-			cat(currentVar, "|| ", sep="")
+				#### CONTINUOUS
+				cat(currentVar, "|| ", sep="")
 
-			testDate(currentVarShort, "DATE", thisdata)
+				if (excluded!="") {
+					cat(paste("Excluded continuous: ", excluded, " || ", sep=""))
+					incrementCounter("excluded.cont")
+				}
+				else {
+					incrementCounter("start.cont")
+					if (isExposure==TRUE) {
+						incrementCounter("start.exposure.cont")
+					}
+					testContinuous(currentVarShort, currentVar, "CONTINUOUS", thisdata);
+				}
+				cat("\n");
+			}
+			else if (fieldType=="Categorical single" && catSinToMult=="") {
 
-			cat("\n")
-		}
-		else {
-	        	#cat("VAR MISSING ", currentVarShort, "\n", sep="");
-	    	}
+				#### CAT SINGLE
+				cat(currentVar, "|| ", sep="")
+
+				if (excluded!="") {
+					cat(paste("Excluded cat-single: ", excluded, " || ", sep=""))
+					incrementCounter("excluded.catSin")
+				}
+				else {
+					incrementCounter("start.catSin")
+					if (isExposure==TRUE) {
+						incrementCounter("start.exposure.catSin")
+					}
+					testCategoricalSingle(currentVarShort, currentVar, "CAT-SIN", thisdata);
+				}
+				cat("\n");
+			}
+			else if (fieldType=="Categorical multiple" || catSinToMult!="") {
+
+				#### CAT MULTIPLE
+				cat(currentVar, "|| ", sep="")
+
+				if (excluded!="") {
+					cat(paste("Excluded cat-multiple: ", excluded, " || ", sep=""))
+					incrementCounter("excluded.catMul")
+				}
+				else {
+
+					if (catSinToMult!="") {
+						cat("cat-single to cat-multiple || ", sep="")
+						incrementCounter("catSinToCatMul")
+					}
+
+					incrementCounter("start.catMul")
+					if (isExposure==TRUE) {
+						incrementCounter("start.exposure.catMul")
+					}
+					else {
+						# get number of cat mult values denoting trait of interest
+						numVals = getNumValuesCatMultExposure(currentVarShort)
+						if (numVals>0) {
+							addToCounts("start.exposure.catMulvalues", numVals)
+						}
+					}
+					testCategoricalMultiple(currentVarShort, currentVar, "CAT-MUL", thisdata);
+				}
+				cat("\n");
+			}
+			else if (fieldType=="Date" && dateConvert!="") {
+
+				#### DATE TO BE CONVERTED TO BINARY
+				cat(currentVar, "|| ", sep="")
+
+				testDate(currentVarShort, currentVar, "DATE", thisdata)
+
+				cat("\n")
+			}
+			else {
+				#cat("VAR MISSING ", currentVarShort, "\n", sep="");
+			}
 		}
 
 	}, error = function(e) {

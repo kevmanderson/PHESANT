@@ -22,27 +22,52 @@
 library("optparse")
 
 option_list = list(
-  make_option(c("-f", "--phenofile"), type="character", default=NULL, help="Phenotype dataset file name", metavar="character"),
-  make_option(c("-g", "--traitofinterestfile"), type="character", default=NULL, help="Trait of interest dataset file name", metavar="character"),
-  make_option(c("-v", "--variablelistfile"), type="character", default=NULL, help="variablelistfile file name (should be tab separated)", metavar="character"),
-  make_option(c("-d", "--datacodingfile"), type="character", default=NULL, help="datacodingfile file name (should be comma separated)", metavar="character"),
-  make_option(c("-e", "--traitofinterest"), type="character", default=NULL, help="traitofinterest option should specify trait of interest variable name", metavar="character"),
-  make_option(c("-r", "--resDir"), type="character", default=NULL, help="resDir option should specify directory where results files should be stored", metavar="character"),
-  make_option(c("-u", "--userId"), type="character", default="userId", help="userId option should specify user ID column in trait of interest and phenotype files [default= %default]", metavar="character"),
-  make_option(c("-t", "--test"), action="store_true", default=FALSE, help="Run test phenome scan on test data (see test subfolder) [default= %default]"),
-  make_option(c("-s", "--sensitivity"), action="store_true", default=FALSE, help="Run sensitivity phenome scan [default= %default]"),
-  make_option(c("-a", "--partIdx"), type="integer", default=NULL, help="Part index of phenotype (used to parellise)"),
-  make_option(c("-b", "--numParts"), type="integer", default=NULL, help="Number of phenotype parts (used to parellise)"),
-  make_option(c("-j", "--genetic"), action="store", default=TRUE, help="Trait of interest is genetic, e.g. a SNP or genetic risk score [default= %default]"),
-  make_option(c("-z", "--save"), action="store_true", default=FALSE, help="Save generated phenotypes to a file rather than testing associations [default= %default]"),
-  make_option(c("-c", "--confounderfile"), type="character", default=NULL, help="Confounder file name", metavar="character"),
-  make_option(c("-i", "--confidenceintervals"), type="logical", default=TRUE, help="Whether confidence intervals should be calculated [default= %default]"),
-  make_option(c("-k", "--standardise"), action="store", default=TRUE, help="Trait of interest is standardised to have mean=0 and std=1 [default= %default]"),
-  make_option(c("-m", "--mincase"), type="integer", default=10, help="Minimum number of cases for categorical outcomes"),
-  make_option(c("-p", "--tab"), action="store", default=FALSE, help="Phenotype (outcome) file is tab rather than comma seperated [default= %default]")
-);
+	make_option(c("-f", "--phenofile"), type="character", default=NULL, help="Phenotype dataset file name", metavar="character"),
+	make_option(c("-g", "--traitofinterestfile"), type="character", default=NULL, help="Trait of interest dataset file name", metavar="character"),
+	make_option(c("-v", "--variablelistfile"), type="character", default=NULL, help="variablelistfile file name (should be tab separated)", metavar="character"),
+	make_option(c("-d", "--datacodingfile"), type="character", default=NULL, help="datacodingfile file name (should be comma separated)", metavar="character"),
+	make_option(c("-e", "--traitofinterest"), type="character", default=NULL, help="traitofinterest option should specify trait of interest variable name", metavar="character"),
+	make_option(c("-r", "--resDir"), type="character", default=NULL, help="resDir option should specify directory where results files should be stored", metavar="character"),
+	make_option(c("-u", "--userId"), type="character", default="userId", help="userId option should specify user ID column in trait of interest and phenotype files [default= %default]", metavar="character"),
+	make_option(c("-t", "--test"), action="store_true", default=FALSE, help="Run test phenome scan on test data (see test subfolder) [default= %default]"),
+	make_option(c("-s", "--sensitivity"), action="store_true", default=FALSE, help="Run sensitivity phenome scan [default= %default]"),
+	make_option(c("-a", "--partIdx"), type="integer", default=NULL, help="Part index of phenotype (used to parellise)"),
+	make_option(c("-b", "--numParts"), type="integer", default=NULL, help="Number of phenotype parts (used to parellise)"),
+	make_option(c("-j", "--genetic"), action="store", default=TRUE, help="Trait of interest is genetic, e.g. a SNP or genetic risk score [default= %default]"),
+	make_option(c("-z", "--save"), action="store_true", default=FALSE, help="Save generated phenotypes to a file rather than testing associations [default= %default]"),
+	make_option(c("-c", "--confounderfile"), type="character", default=NULL, help="Confounder file name", metavar="character"),
+	make_option(c("-i", "--confidenceintervals"), type="logical", default=TRUE, help="Whether confidence intervals should be calculated [default= %default]"),
+	make_option(c("-k", "--standardise"), action="store", default=TRUE, help="Trait of interest is standardised to have mean=0 and std=1 [default= %default]"),
+	make_option(c("-w", "--ageistraitofinterest"), action="store_true", default=FALSE, help="ageistraitofinterest [default= %default]"),
+	make_option(c("-m", "--mincase"), type="integer", default=10, help="Minimum number of cases for categorical outcomes"),
+	make_option(c("-p", "--tab"), action="store", default=FALSE, help="Phenotype (outcome) file is tab rather than comma seperated [default= %default]"),
+	make_option(c("-q", "--visit"), type="character", default='0', help="visit num [default= %default]")
+ );
+print('a')
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
+
+print('asdfasd')
+manual = F
+if (manual == T){
+	setwd('/gpfs/milgram/project/holmes/kma52/buckner_aging/external/PHESANT/WAS')
+	opt = NULL
+	opt$phenofile="/gpfs/milgram/project/holmes/kma52/buckner_aging/data/ukb/raw/ukb40501_phesant_TEST.csv"
+	opt$confidenceintervals <- TRUE
+	opt$genetic <- FALSE
+	opt$sensitivity <- TRUE
+	opt$traitofinterest="x21022_2_0"
+	opt$ageistraitofinterest=TRUE
+	opt$userId='eid'
+	opt$resDir="/gpfs/milgram/project/holmes/kma52/buckner_aging/output/phesant_neale/ageFull/"
+	opt$datacodingfile="../variable-info/data-coding-ordinal-info.txt"
+	opt$variablelistfile="../variable-info/outcome-info.tsv"
+	opt$save = T
+	opt$tab = F
+	opt$test = F
+	opt$visit = '2'
+
+}
 
 source("processArgs.r")
 processArgs();
@@ -79,12 +104,12 @@ first=TRUE;
 if (opt$save == TRUE) {
 
 	derivedBinary <- data.frame(userID=data$userID)
-        derivedCont <- data.frame(userID=data$userID)
-        derivedCatOrd <- data.frame(userID=data$userID)
-        derivedCatUnord <- data.frame(userID=data$userID)
+	derivedCont <- data.frame(userID=data$userID)
+	derivedCatOrd <- data.frame(userID=data$userID)
+	derivedCatUnord <- data.frame(userID=data$userID)
 
 	resLogFile = paste(opt$resDir,"data-log-",opt$varTypeArg,".txt",sep="")
-        sink(resLogFile)
+	sink(resLogFile)
 } else {
 	modelFitLogFile = paste(opt$resDir,"modelfit-log-",opt$varTypeArg,".txt",sep="")
 	sink(modelFitLogFile)
@@ -96,18 +121,18 @@ if (opt$save == TRUE) {
 
 
 phenoIdx=0; # zero because then the idx is the position of the previous variable, i.e. the var in currentVar
-for (var in phenoVars) { 
-
+for (var in phenoVars) {
 
 	sink()
-#	print(var)
+	#	print(var)
 	sink(resLogFile, append=TRUE)
 
 	varx = gsub("^x", "", var);
-        varx = gsub("_[0-9]+$", "", varx);
+	varx = gsub("_[0-9]+$", "", varx);
 	varxShort = gsub("^x", "", var);
-        varxShort = gsub("_[0-9]+_[0-9]+$", "", varxShort);
-
+	varxShort = gsub("_[0-9]+_[0-9]+$", "", varxShort);
+	print(varx)
+	print(currentVar)
 	## test this variable
 	if (currentVar == varx) {
 		thisCol = data[,eval(var)]
@@ -120,13 +145,12 @@ for (var in phenoVars) {
 	else {
 		## new variable so run test for previous (we have collected all the columns now)
 		if (first==FALSE) {
-
 			thisdata = makeTestDataFrame(data, confounders, currentVarValues)
 			testAssociations(currentVar, currentVarShort, thisdata)
 		}
-		
+
 		first=FALSE;
-		
+
 		## new variable so set values
 		currentVar = varx;
 		currentVarShort = varxShort;
@@ -134,7 +158,6 @@ for (var in phenoVars) {
 		currentVarValues = data[,eval(var)]
 		currentVarValues = replaceNaN(currentVarValues)
 	}
-
 	phenoIdx = phenoIdx + 1;
 }
 

@@ -21,7 +21,7 @@
 # 1. convert date to binary - whether a participant has a date value or not
 # 2) Checking derived variable has at least 10 cases in each group
 # 3) Calling binaryLogisticRegression function for this derived binary variable
-testDate <- function(varName, varType, thisdata) {
+testDate <- function(varName, currentVar, varType, thisdata) {
 	cat("DATE || ")
 
 	# convert to binary variable - whether a participant has a date value or not
@@ -65,7 +65,7 @@ testDate <- function(varName, varType, thisdata) {
 		newthisdata = cbind.data.frame(thisdata[,1:numPreceedingCols], varBinaryFactor)
 
 	     	# binary - so logistic regression
-		binaryLogisticRegression(varName, varType, newthisdata, isExposure)
+		binaryLogisticRegression(varName, currentVar, varType, newthisdata, isExposure)
 	}
 	
 }
