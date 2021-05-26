@@ -18,28 +18,27 @@
 
 
 # Tests the association of a field, determined by its field type
-testAssociations <- function(currentVar, currentVarShort, thisdata) {
+testAssociations <- function(currentVar, currentVarShort, thisdata, fullVar=NULL) {
 
 	## call file for variable type
 
 	tryCatch({
 
 		# retrieve whether phenotype is excluded etc
-		idx=which(vl$phenoInfo$FieldID==currentVarShort);
+		idx = which(vl$phenoInfo$FieldID==currentVarShort);
 
 		# check if variable info is found for this field
 		if (length(idx)==0) {
 			cat(paste(currentVar, " || Variable could not be found in pheno info file. \n", sep=""))
 			incrementCounter("notinphenofile")
-		}
-		else {
+		} else {
 
 			# get info from variable info file
-			excluded = vl$phenoInfo$EXCLUDED[idx]
+			excluded     = vl$phenoInfo$EXCLUDED[idx]
 			catSinToMult = vl$phenoInfo$CAT_SINGLE_TO_CAT_MULT[idx]
-			fieldType = vl$phenoInfo$ValueType[idx]
-			isExposure = getIsExposure(currentVarShort) #vl$phenoInfo$EXPOSURE_PHENOTYPE[idx]
-			dateConvert = vl$phenoInfo$DATE_CONVERT[idx]
+			fieldType    = vl$phenoInfo$ValueType[idx]
+			isExposure   = getIsExposure(currentVarShort) #vl$phenoInfo$EXPOSURE_PHENOTYPE[idx]
+			dateConvert  = vl$phenoInfo$DATE_CONVERT[idx]
 
 			if (fieldType=="Integer") {
 
@@ -49,8 +48,7 @@ testAssociations <- function(currentVar, currentVarShort, thisdata) {
 				if (excluded!="") {
 					cat(paste("Excluded integer: ", excluded, " || ", sep=""))
 					incrementCounter("excluded.int")
-				}
-				else {
+				} else {
 					incrementCounter("start.int")
 					if (isExposure==TRUE) {
 						incrementCounter("start.exposure.int")
@@ -68,13 +66,14 @@ testAssociations <- function(currentVar, currentVarShort, thisdata) {
 				if (excluded!="") {
 					cat(paste("Excluded continuous: ", excluded, " || ", sep=""))
 					incrementCounter("excluded.cont")
-				}
-				else {
+				} else {
 					incrementCounter("start.cont")
 					if (isExposure==TRUE) {
 						incrementCounter("start.exposure.cont")
 					}
-					testContinuous(currentVarShort, currentVar, "CONTINUOUS", thisdata);
+					# varName = currentVarShort
+					# varType = 'CONTINUOUS'
+					testContinuous(currentVarShort, currentVar, "CONTINUOUS", thisdata, fullVar);
 				}
 				cat("\n");
 			}
@@ -86,12 +85,13 @@ testAssociations <- function(currentVar, currentVarShort, thisdata) {
 				if (excluded!="") {
 					cat(paste("Excluded cat-single: ", excluded, " || ", sep=""))
 					incrementCounter("excluded.catSin")
-				}
-				else {
+				} else {
 					incrementCounter("start.catSin")
 					if (isExposure==TRUE) {
 						incrementCounter("start.exposure.catSin")
 					}
+					# varName = currentVarShort
+					# varType = "CAT-SIN"
 					testCategoricalSingle(currentVarShort, currentVar, "CAT-SIN", thisdata);
 				}
 				cat("\n");
@@ -104,8 +104,7 @@ testAssociations <- function(currentVar, currentVarShort, thisdata) {
 				if (excluded!="") {
 					cat(paste("Excluded cat-multiple: ", excluded, " || ", sep=""))
 					incrementCounter("excluded.catMul")
-				}
-				else {
+				} else {
 
 					if (catSinToMult!="") {
 						cat("cat-single to cat-multiple || ", sep="")
@@ -115,8 +114,7 @@ testAssociations <- function(currentVar, currentVarShort, thisdata) {
 					incrementCounter("start.catMul")
 					if (isExposure==TRUE) {
 						incrementCounter("start.exposure.catMul")
-					}
-					else {
+					} else {
 						# get number of cat mult values denoting trait of interest
 						numVals = getNumValuesCatMultExposure(currentVarShort)
 						if (numVals>0) {
@@ -135,8 +133,7 @@ testAssociations <- function(currentVar, currentVarShort, thisdata) {
 				testDate(currentVarShort, currentVar, "DATE", thisdata)
 
 				cat("\n")
-			}
-			else {
+			} else {
 				#cat("VAR MISSING ", currentVarShort, "\n", sep="");
 			}
 		}

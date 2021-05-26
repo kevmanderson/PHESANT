@@ -48,14 +48,14 @@ testCategoricalMultiple <- function(varName, currentVar, varType, thisdata) {
 			cat("SKIP_val:", variableVal," < 0", sep="");
 			next;
 		}
-	
+
 		# make variable for this value
 		idxForVar = which(pheno == variableVal, arr.ind=TRUE)
 		idxsTrue = idxForVar[,"row"]
 
 		cat(" CAT-MUL-BINARY-VAR ", variableVal, " || ", sep="");
 		incrementCounter("catMul.binary")
-		
+
 		# make zero vector and set 1s for those with this variable value
 		varBinary = rep.int(0,numRows);
 		varBinary[idxsTrue] = 1;
@@ -65,26 +65,28 @@ testCategoricalMultiple <- function(varName, currentVar, varType, thisdata) {
 		newthisdata = cbind.data.frame(thisdata[,1:numPreceedingCols], varBinaryFactor)
 
 		## one of 3 ways to decide which examples are negative
-        	idxsToRemove = restrictSample(varName, pheno, variableVal, thisdata[,"userID", drop=FALSE])
+		idxsToRemove = restrictSample(varName, pheno, variableVal, thisdata[,"userID", drop=FALSE])
 
 		if (!is.null(idxsToRemove) & length(idxsToRemove) > 0) {
 			newthisdata = newthisdata[-idxsToRemove,]
 		}
 
-		facLevels = levels(newthisdata[,phenoStartIdx])		
-		idxTrue = length(which(newthisdata[,phenoStartIdx]==facLevels[1]))
-	        idxFalse = length(which(newthisdata[,phenoStartIdx]==facLevels[2]))
-                
-	        if (idxTrue<opt$mincase || idxFalse<opt$mincase) {
-	                cat("CAT-MULT-SKIP-10 (", idxTrue, " vs ", idxFalse, ") || ", sep="");
+		facLevels = levels(newthisdata[,phenoStartIdx])
+		idxTrue   = length(which(newthisdata[,phenoStartIdx]==facLevels[1]))
+		idxFalse  = length(which(newthisdata[,phenoStartIdx]==facLevels[2]))
+
+		if (idxTrue<opt$mincase || idxFalse<opt$mincase) {
+			cat("CAT-MULT-SKIP-10 (", idxTrue, " vs ", idxFalse, ") || ", sep="");
 			incrementCounter("catMul.10")
-	        }
+		}
 		else {
 			isExposure = getIsCatMultExposure(varName, variableVal)
 
 			incrementCounter("catMul.over10")
-		     	# binary - so logistic regression
-			binaryLogisticRegression(paste(varName, variableVal,sep="#"), currentVar, varType, newthisdata, isExposure)
+			# binary - so logistic regression
+			binaryLogisticRegression(paste(currentVar, variableVal,sep="#"), paste(varName, variableVal,sep="#"), varType, newthisdata, isExposure)
+			#binaryLogisticRegression(paste(varName, variableVal,sep="#"), paste(varName, variableVal,sep="#"), varType, newthisdata, isExposure)
+			#binaryLogisticRegression(paste(varName, variableVal,sep="#"), currentVar, varType, newthisdata, isExposure)
 		}
 	}
 }
@@ -102,7 +104,7 @@ restrictSample <- function(varName,pheno,variableVal, userID) {
 
 
 restrictSample2 <- function(varName,pheno, varIndicator,variableVal, userID) {
-	
+
 	if (varIndicator=="NO_NAN") { # remove NAs
 		## remove all people with no value for this variable
 
@@ -130,7 +132,7 @@ restrictSample2 <- function(varName,pheno, varIndicator,variableVal, userID) {
 		}
 
 		cat("Indicator name ", indName, " || ", sep="");
-		indvarx = merge(userID, indicatorFields, by="userID", all.x=TRUE, all.y=FALSE, sort=FALSE)		
+		indvarx = merge(userID, indicatorFields, by="userID", all.x=TRUE, all.y=FALSE, sort=FALSE)
 		indicatorVar = indvarx[,indName]
 
 		# remove participants with NA value in this related field
@@ -158,16 +160,16 @@ restrictSample2 <- function(varName,pheno, varIndicator,variableVal, userID) {
 
 		# all people with <0 value and not variableVal
 		naMissing = setdiff(idxMissing,idxForVar)
-		
+
 		# add these people with unknowns to set to remove from sample
 		naIdxs = union(naIdxs, naMissing)
-		
+
 		cat(paste("Removed ", length(naMissing) ," examples != ", variableVal, " but with missing value (<0) || ", sep=""));
 	}
 	else {
 		cat("Not numeric || ")
 	}
-	
+
 	return(naIdxs);
 
 }

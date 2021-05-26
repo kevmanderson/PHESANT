@@ -41,31 +41,37 @@ option_list = list(
 	make_option(c("-w", "--ageistraitofinterest"), action="store_true", default=FALSE, help="ageistraitofinterest [default= %default]"),
 	make_option(c("-m", "--mincase"), type="integer", default=10, help="Minimum number of cases for categorical outcomes"),
 	make_option(c("-p", "--tab"), action="store", default=FALSE, help="Phenotype (outcome) file is tab rather than comma seperated [default= %default]"),
-	make_option(c("-q", "--visit"), type="character", default='0', help="visit num [default= %default]")
- );
-print('a')
+	make_option(c("-q", "--visit"), type="character", default='0', help="visit num [default= %default]"),
+	make_option(c("--file_prepend"), type="character", default=FALSE, help="visit num [default= %default]")
+
+);
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 
-print('asdfasd')
 manual = F
 if (manual == T){
-	setwd('/gpfs/milgram/project/holmes/kma52/buckner_aging/external/PHESANT/WAS')
+	setwd('/gpfs/milgram/project/holmes/kma52/ukbAgingPipeline/external/PHESANT/WAS')
 	opt = NULL
-	opt$phenofile="/gpfs/milgram/project/holmes/kma52/buckner_aging/data/ukb/raw/ukb40501_phesant_TEST.csv"
+	opt$phenofile="/gpfs/milgram/project/holmes/kma52/buckner_aging/data/ukb/raw/phesant_visit3.csv"
 	opt$confidenceintervals <- TRUE
 	opt$genetic <- FALSE
-	opt$sensitivity <- TRUE
-	opt$traitofinterest="x21022_2_0"
+	opt$sensitivity <- FALSE
+	opt$traitofinterest="x21003_3_0"
 	opt$ageistraitofinterest=TRUE
-	opt$userId='eid'
-	opt$resDir="/gpfs/milgram/project/holmes/kma52/buckner_aging/output/phesant_neale/ageFull/"
-	opt$datacodingfile="../variable-info/data-coding-ordinal-info.txt"
-	opt$variablelistfile="../variable-info/outcome-info.tsv"
+	opt$userId='xeid'
+	opt$resDir="/gpfs/milgram/project/holmes/kma52/buckner_aging/data/ukb/phesant/"
+	opt$datacodingfile="/gpfs/milgram/project/holmes/kma52/buckner_aging/external/PHESANT/variable-info/data-coding-ordinal-info.txt"
+	opt$variablelistfile="/gpfs/milgram/project/holmes/kma52/ukbAgingPipeline/ref_files/aging-outcome-info.tsv"
+	opt$confounderfile = "/gpfs/milgram/project/holmes/kma52/buckner_aging/data/ukb/raw/phesant_covar_vis3.csv"
 	opt$save = T
 	opt$tab = F
 	opt$test = F
-	opt$visit = '2'
+	opt$visit = '3'
+	opt$mincase = 10
+	opt$partIdx = 4
+	opt$numParts = 30
+	opt$standardise = TRUE
+	opt$file_prepend = 'prepend'
 
 }
 
@@ -80,78 +86,105 @@ counters=initCounters();
 if (opt$save==FALSE) {
 	initResultsFiles();
 }
-vl=initVariableLists();
+vl = initVariableLists();
 
 ## load data
-d <- loadData()
-data=d$datax
-confounders=d$confounders
-indicatorFields=d$inds
+d    = loadData()
+data = d$datax
+confounders     = d$confounders
+indicatorFields = d$inds
 
 numPreceedingCols = ncol(confounders)-1+2; # confounders,minus id column, plus trait of interest and user ID
 phenoStartIdx = numPreceedingCols+1;
 
 print("LOADING DONE")
-
-phenoVars=colnames(data);
+phenoVars = colnames(data);
 # remove user id and age and sex columns
 phenoVars = phenoVars[-c(1,2)]; # first and second columns are the id and snpScore, respectively, as determined in loadData.r
 
-currentVar="";
-currentVarShort="";
-first=TRUE;
+currentVar = "";
+currentVarShort = "";
+first = TRUE;
+
+print(opt$file_prepend)
+if (opt$file_prepend != FALSE){
+	resDirPath = paste(opt$resDir, opt$file_prepend, '-', sep="")
+	opt$resDir = resDirPath
+} else {
+	resDirPath = opt$resDir
+}
 
 if (opt$save == TRUE) {
-
-	derivedBinary <- data.frame(userID=data$userID)
-	derivedCont <- data.frame(userID=data$userID)
-	derivedCatOrd <- data.frame(userID=data$userID)
+	derivedBinary   <- data.frame(userID=data$userID)
+	derivedCont     <- data.frame(userID=data$userID)
+	derivedCatOrd   <- data.frame(userID=data$userID)
 	derivedCatUnord <- data.frame(userID=data$userID)
+	#resLogFile = paste(resDirPath,"data-log-",opt$varTypeArg,".txt",sep="")
+	#sink(resLogFile)
 
-	resLogFile = paste(opt$resDir,"data-log-",opt$varTypeArg,".txt",sep="")
-	sink(resLogFile)
-} else {
-	modelFitLogFile = paste(opt$resDir,"modelfit-log-",opt$varTypeArg,".txt",sep="")
+	#} else {
+	modelFitLogFile = paste(resDirPath,"modelfit-log-",opt$varTypeArg,".txt",sep="")
 	sink(modelFitLogFile)
 	sink()
-
-	resLogFile = paste(opt$resDir,"results-log-",opt$varTypeArg,".txt",sep="")
+	resLogFile = paste(resDirPath,"results-log-",opt$varTypeArg,".txt",sep="")
+	sink(resLogFile)
+} else {
+	modelFitLogFile = paste(resDirPath,"modelfit-log-",opt$varTypeArg,".txt",sep="")
+	sink(modelFitLogFile)
+	sink()
+	resLogFile = paste(resDirPath,"results-log-",opt$varTypeArg,".txt",sep="")
 	sink(resLogFile)
 }
 
 
-phenoIdx=0; # zero because then the idx is the position of the previous variable, i.e. the var in currentVar
+phenoIdx = 0; # zero because then the idx is the position of the previous variable, i.e. the var in currentVar
+#for (var in phenoVars[6450:length(phenoVars)]) {
 for (var in phenoVars) {
 
-	sink()
+	#sink()
 	#	print(var)
-	sink(resLogFile, append=TRUE)
-
+	#sink(resLogFile, append=TRUE)
 	varx = gsub("^x", "", var);
 	varx = gsub("_[0-9]+$", "", varx);
 	varxShort = gsub("^x", "", var);
 	varxShort = gsub("_[0-9]+_[0-9]+$", "", varxShort);
-	print(varx)
-	print(currentVar)
+
+	if (varxShort == '6362'){
+		next
+	}
+
+	if (varxShort %in% c('25750', '25751', '25752', '25753', '25754', '25755')){
+		RUN_ARRAYS_INDEPENDENTLY = TRUE
+	} else {
+		RUN_ARRAYS_INDEPENDENTLY = FALSE
+	}
+
 	## test this variable
-	if (currentVar == varx) {
+	if (currentVar == varx && RUN_ARRAYS_INDEPENDENTLY == FALSE) {
+		write('cond-1','')
 		thisCol = data[,eval(var)]
 		thisCol = replaceNaN(thisCol)
 		currentVarValues = cbind.data.frame(currentVarValues, thisCol);
-	}
-	else if (currentVarShort == varxShort) {
-		## different time point of this var so skip
-	}
-	else {
-		## new variable so run test for previous (we have collected all the columns now)
-		if (first==FALSE) {
-			thisdata = makeTestDataFrame(data, confounders, currentVarValues)
-			testAssociations(currentVar, currentVarShort, thisdata)
-		}
 
-		first=FALSE;
+	} else if (currentVarShort == varxShort && RUN_ARRAYS_INDEPENDENTLY == FALSE) {
+		## different time point of this var so skip
+	} else {
+		write('cond-3', '')
+		## new variable so run test for previous (we have collected all the columns now)
+		if (first == FALSE) {
+			write('cond-3-1', '')
+			thisdata = makeTestDataFrame(data, confounders, currentVarValues)
+			if (RUN_ARRAYS_INDEPENDENTLY == FALSE){
+				testAssociations(currentVar, currentVarShort, thisdata)
+			} else {
+				testAssociations(currentVar, currentVarShort, thisdata, fullVar)
+			}
+		}
+		write('cond-3-2', '')
+		first = FALSE;
 
 		## new variable so set values
+		fullVar = var;
 		currentVar = varx;
 		currentVarShort = varxShort;
 
@@ -173,10 +206,10 @@ sink()
 saveCounts()
 
 if (opt$save == TRUE) {
-	write.table(derivedBinary, file=paste(opt$resDir,"data-binary-",opt$varTypeArg,".txt", sep=""), append=FALSE, quote=FALSE, sep=",", na="", row.names=FALSE, col.names=TRUE);
-	write.table(derivedCont, file=paste(opt$resDir,"data-cont-",opt$varTypeArg,".txt", sep=""), append=FALSE, quote=FALSE, sep=",", na="", row.names=FALSE, col.names=TRUE);
-	write.table(derivedCatOrd, file=paste(opt$resDir,"data-catord-",opt$varTypeArg,".txt", sep=""), append=FALSE, quote=FALSE, sep=",", na="", row.names=FALSE, col.names=TRUE);
-	write.table(derivedCatUnord, file=paste(opt$resDir,"data-catunord-",opt$varTypeArg,".txt", sep=""), append=FALSE, quote=FALSE, sep=",", na="", row.names=FALSE, col.names=TRUE);
+	write.table(derivedBinary, file=paste(resDirPath,"data-binary-",opt$varTypeArg,".txt", sep=""), append=FALSE, quote=FALSE, sep=",", na="", row.names=FALSE, col.names=TRUE);
+	write.table(derivedCont, file=paste(resDirPath,"data-cont-",opt$varTypeArg,".txt", sep=""), append=FALSE, quote=FALSE, sep=",", na="", row.names=FALSE, col.names=TRUE);
+	write.table(derivedCatOrd, file=paste(resDirPath,"data-catord-",opt$varTypeArg,".txt", sep=""), append=FALSE, quote=FALSE, sep=",", na="", row.names=FALSE, col.names=TRUE);
+	write.table(derivedCatUnord, file=paste(resDirPath,"data-catunord-",opt$varTypeArg,".txt", sep=""), append=FALSE, quote=FALSE, sep=",", na="", row.names=FALSE, col.names=TRUE);
 }
 
 warnings()

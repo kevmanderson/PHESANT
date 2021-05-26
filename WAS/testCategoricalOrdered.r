@@ -20,7 +20,7 @@
 # Performs ordered logistic regression test and saves results in ordered logistic results file
 testCategoricalOrdered <- function(varName, currentVar, varType, thisdata, orderStr="") {
 
-	
+
 	pheno = thisdata[,phenoStartIdx:ncol(thisdata)]
 	geno = thisdata[,"geno"]
 
@@ -44,17 +44,17 @@ testCategoricalOrdered <- function(varName, currentVar, varType, thisdata, order
 	else {
 		# test this cat ordered variable with ordered logistic regression	
 
-	        phenoFactor = factor(pheno)
+		phenoFactor = factor(pheno)
 
 		cat("num categories: ", length(unique(na.omit(phenoFactor))), " || ", sep="");
 
 		if (opt$save == TRUE) {
 			# add pheno to dataframe
-			storeNewVar(thisdata[,"userID"], phenoFactor, varName, 'catOrd')
+			#storeNewVar(thisdata[,"userID"], phenoFactor, varName, 'catOrd')
+			storeNewVar(thisdata[,"userID"], phenoFactor, currentVar, 'catOrd')
 			cat("SUCCESS results-ordered-logistic");
 			incrementCounter("success.ordCat")
-                }
-                else {
+		}
 
 		# ordinal logistic regression
 		sink()
@@ -67,51 +67,48 @@ testCategoricalOrdered <- function(varName, currentVar, varType, thisdata, order
 
 		### BEGIN TRYCATCH
 		tryCatch({
-		confounders=thisdata[,3:numPreceedingCols, drop = FALSE]
+			confounders=thisdata[,3:numPreceedingCols, drop = FALSE]
 
+			if (opt$standardise==TRUE) {
+				geno = scale(geno)
+			}
 
-		if (opt$standardise==TRUE) {
-			geno = scale(geno)
-                }
+			fit <- polr(phenoFactor ~ geno + ., data=confounders, Hess=TRUE)
 
-		fit <- polr(phenoFactor ~ geno + ., data=confounders, Hess=TRUE)
+			ctable <- coef(summary(fit))
+			sink()
+			sink(resLogFile, append=TRUE)
 
-		ctable <- coef(summary(fit))
-		sink()
-		sink(resLogFile, append=TRUE)
+			ct = coeftest(fit)
+			pvalue = ct["geno","Pr(>|t|)"]
+			beta = ctable["geno", "Value"];
 
-		ct = coeftest(fit)
-		pvalue = ct["geno","Pr(>|t|)"]
-		beta = ctable["geno", "Value"];
+			if (opt$confidenceintervals == TRUE) {
+				se = ctable["geno", "Std. Error"]
+				lower = beta - 1.96*se;
+				upper = beta + 1.96*se;
+			}
+			else {
+				lower = NA
+				upper = NA
+			}
 
-		if (opt$confidenceintervals == TRUE) {
-			se = ctable["geno", "Std. Error"]
-			lower = beta - 1.96*se;
-	                upper = beta + 1.96*se;
-                }
-                else {
-                        lower = NA
-                        upper = NA
-                }
+			write(paste(paste0("\"", varName, "\""), paste0("\"", currentVar, "\""), varType, numNotNA, beta, lower, upper, pvalue, sep=","), file=paste(opt$resDir,"results-ordered-logistic-",opt$varTypeArg,".txt",sep=""), append="TRUE");
+			cat("SUCCESS results-ordered-logistic");
+			incrementCounter("success.ordCat")
 
-		write(paste(paste0("\"", varName, "\""), paste0("\"", currentVar, "\""), varType, numNotNA, beta, lower, upper, pvalue, sep=","), file=paste(opt$resDir,"results-ordered-logistic-",opt$varTypeArg,".txt",sep=""), append="TRUE");
-		cat("SUCCESS results-ordered-logistic");
-		incrementCounter("success.ordCat")
+			isExposure = getIsExposure(varName)
+			if (isExposure == TRUE) {
+				incrementCounter("success.exposure.ordCat")
+			}
 
-		isExposure = getIsExposure(varName)
-                if (isExposure == TRUE) {
-                        incrementCounter("success.exposure.ordCat")
-                }
-
-		### END TRYCATCH
+			### END TRYCATCH
 		}, error = function(e) {
 			sink()
-                        sink(resLogFile, append=TRUE)
-                        cat(paste("ERROR:", varName,gsub("[\r\n]", "", e), sep=" "))
-                        incrementCounter("ordCat.error")
-                })
-		}
-
+			sink(resLogFile, append=TRUE)
+			cat(paste("ERROR:", varName,gsub("[\r\n]", "", e), sep=" "))
+			incrementCounter("ordCat.error")
+		})
 	}
 }
 
@@ -121,21 +118,21 @@ testCategoricalOrdered <- function(varName, currentVar, varType, thisdata, order
 doCatOrdAssertions <- function(pheno) {
 
 	# assert variable has only one column    
-    	if (!is.null(dim(pheno))) stop("More than one column for categorical ordered")
+	if (!is.null(dim(pheno))) stop("More than one column for categorical ordered")
 
-		uniqVar = unique(na.omit(pheno));
-	
-		# assert more than 2 categories
-		if (length(uniqVar)<=1) stop("1 or zero values")
-		if (length(uniqVar)==2) stop("this variable is binary")
+	uniqVar = unique(na.omit(pheno));
 
-		# assert each value has >= 10 examples
-		for (u in uniqVar) {
-     			withValIdx = which(pheno==u)
-        		numWithVal = length(withValIdx);
-		
-			if (numWithVal<opt$mincase) stop("value with <",opt$mincase," examples")
-		}
+	# assert more than 2 categories
+	if (length(uniqVar)<=1) stop("1 or zero values")
+	if (length(uniqVar)==2) stop("this variable is binary")
+
+	# assert each value has >= 10 examples
+	for (u in uniqVar) {
+		withValIdx = which(pheno==u)
+		numWithVal = length(withValIdx);
+
+		if (numWithVal<opt$mincase) stop("value with <",opt$mincase," examples")
+	}
 }
 
 # If data coding file does not specify an order then we use the default order as in coding defined by Biobank
@@ -147,17 +144,17 @@ setOrderString <- function(orderStr, uniqVar) {
 		orderStr="";
 
 		# create order str by appending each value
-                uniqVarSorted = sort(uniqVar);
-                first=1;
-                for (i in uniqVarSorted) {
-                        if (first==0) {
-                                orderStr = paste(orderStr, "|",	sep="");
-                        }
+		uniqVarSorted = sort(uniqVar);
+		first=1;
+		for (i in uniqVarSorted) {
+			if (first==0) {
+				orderStr = paste(orderStr, "|",	sep="");
+			}
 			if (i>=0) # ignore missing values
-                        	orderStr = paste(orderStr, i, sep="");
-				first=0;
+				orderStr = paste(orderStr, i, sep="");
+			first=0;
 			end
-                }
-        }
+		}
+	}
 	return(orderStr);
 }

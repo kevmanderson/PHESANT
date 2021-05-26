@@ -52,71 +52,71 @@ binaryLogisticRegression <- function(varName, currentVar, varType, thisdata, isE
 
 		if (opt$save == TRUE) {
 			# add pheno to dataframe
-			storeNewVar(thisdata[,"userID"], phenoFactor, varName, 'bin')
+			#storeNewVar(thisdata[,"userID"], phenoFactor, varName, 'bin')
+			storeNewVar(thisdata[,"userID"], phenoFactor, currentVar, 'bin')
 			cat("SUCCESS results-logistic-binary ");
 			incrementCounter("success.binary")
 		}
-		else {
 
-			# use standardised geno values
-			if (opt$standardise==TRUE) {
-				geno = scale(thisdata[,"geno"])
-			}
-			else {
-				geno = thisdata[,"geno"]
-			}
-			confounders=thisdata[,3:numPreceedingCols, drop = FALSE]
+		# use standardised geno values
+		if (opt$standardise==TRUE) {
+			geno = scale(thisdata[,"geno"])
+		}
+		else {
+			geno = thisdata[,"geno"]
+		}
+		confounders=thisdata[,3:numPreceedingCols, drop = FALSE]
+
+		sink()
+		sink(modelFitLogFile, append=TRUE)
+		print("--------------")
+		print(varName)
+
+		###### BEGIN TRYCATCH
+		tryCatch({
+
+			mylogit <- glm(phenoFactor ~ geno + ., data=confounders, family="binomial")
 
 			sink()
-			sink(modelFitLogFile, append=TRUE)
-			print("--------------")
-			print(varName)
+			sink(resLogFile, append=TRUE)
 
-			###### BEGIN TRYCATCH
-			tryCatch({
+			sumx = summary(mylogit)
 
-				mylogit <- glm(phenoFactor ~ geno + ., data=confounders, family="binomial")
-
-				sink()
-				sink(resLogFile, append=TRUE)
-
-				sumx = summary(mylogit)
-
-				pvalue = sumx$coefficients['geno','Pr(>|z|)']
-				beta = sumx$coefficients["geno","Estimate"]
+			pvalue = sumx$coefficients['geno','Pr(>|z|)']
+			beta = sumx$coefficients["geno","Estimate"]
 
 
-				if (opt$confidenceintervals == TRUE) {
-					cis = confint(mylogit, "geno", level=0.95)
-					lower = cis["2.5 %"]
-					upper = cis["97.5 %"]
-				}
-				else {
-					lower = NA
-					upper = NA
-				}
+			if (opt$confidenceintervals == TRUE) {
+				cis = confint(mylogit, "geno", level=0.95)
+				lower = cis["2.5 %"]
+				upper = cis["97.5 %"]
+			}
+			else {
+				lower = NA
+				upper = NA
+			}
 
-				numNotNA = length(na.omit(phenoFactor))
+			numNotNA = length(na.omit(phenoFactor))
 
-				## save result to file
-				write(paste(paste0("\"", varName, "\""), paste0("\"", currentVar, "\""), varType,paste(idxTrue,"/",idxFalse,"(",numNotNA,")",sep=""), beta,lower,upper,pvalue, sep=","), file=paste(opt$resDir,"results-logistic-binary-",opt$varTypeArg,".txt",sep=""), append="TRUE");
-				cat("SUCCESS results-logistic-binary ");
+			## save result to file
+			write(paste(paste0("\"", varName, "\""), paste0("\"", currentVar, "\""), varType, paste(idxTrue,"/",idxFalse,"(",numNotNA,")",sep=""), beta,lower,upper,pvalue, sep=","), file=paste(opt$resDir,"results-logistic-binary-",opt$varTypeArg,".txt",sep=""), append="TRUE");
+			cat("SUCCESS results-logistic-binary ");
 
 
-				incrementCounter("success.binary")
+			incrementCounter("success.binary")
 
-				if (isExposure==TRUE) {
-					incrementCounter("success.exposure.binary")
-				}
+			if (isExposure==TRUE) {
+				incrementCounter("success.exposure.binary")
+			}
 
-				## END TRYCATCH
-			}, error = function(e) {
-				sink()
-				sink(resLogFile, append=TRUE)
-				cat(paste("ERROR:", varName,gsub("[\r\n]", "", e), sep=" "))
-				incrementCounter("binary.error")
-			})
-		}
+			## END TRYCATCH
+		}, error = function(e) {
+			sink()
+			sink(resLogFile, append=TRUE)
+			cat(paste("ERROR:", varName,gsub("[\r\n]", "", e), sep=" "))
+			incrementCounter("binary.error")
+		})
+
 	}
 }
 

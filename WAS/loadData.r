@@ -42,10 +42,11 @@ loadData <- function() {
 	phenotype = loadPhenotypes()
 
 	## load trait of interest
-	toi <- loadTraitOfInterest(phenotype)
+	toi  = loadTraitOfInterest(phenotype)
 
 	## load confounders
-	conf <- loadConfounders(phenotype)
+	conf = loadConfounders(phenotype)
+	conf = as.data.frame(conf)
 
 	## add trait of interest to phenotype data frame and remove rows with no trait of interest
 	## merge in toi with phenotype - keep id list from phenotypes file

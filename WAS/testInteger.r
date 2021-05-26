@@ -37,29 +37,29 @@ testInteger <- function(varName, currentVar, varType, thisdata) {
 
 	## average if multiple columns
 	if (!is.null(dim(pheno))) {
-                phenoAvg = rowMeans(pheno, na.rm=TRUE)
-		
+		phenoAvg = rowMeans(pheno, na.rm=TRUE)
+
 		# if participant only has NA values then NaN is generated so we convert back to NA
 		phenoAvg = replaceNaN(phenoAvg)
-        }
+	}
 	else {
-                phenoAvg = pheno
-        }
+		phenoAvg = pheno
+	}
 
 	uniqVar = unique(na.omit(phenoAvg))
 
 	# if >=20 separate values then treat as continuous
 	if (length(uniqVar)>=20) {
-		
+
 		thisdatanew = cbind.data.frame(thisdata[,1:numPreceedingCols], phenoAvg);
 		testContinuous2(varName, currentVar, varType, thisdatanew)
 		incrementCounter("int.continuous")
 	}
 	else {
-		
+
 		## remove categories if < 10 examples
-	    	phenoAvg = testNumExamples(phenoAvg)
-	    
+		phenoAvg = testNumExamples(phenoAvg)
+
 		## binary if 2 distinct values, else ordered categorical
 		phenoFactor = factor(phenoAvg)
 		numLevels = length(levels(phenoFactor))

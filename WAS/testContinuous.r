@@ -18,7 +18,7 @@
 
 
 # Main function called for continuous fields
-testContinuous <- function(varName, currentVar, varType, thisdata) {
+testContinuous <- function(varName, currentVar, varType, thisdata, fullVar=NULL) {
 
 	cat("CONTINUOUS MAIN || ");
 
@@ -29,13 +29,13 @@ testContinuous <- function(varName, currentVar, varType, thisdata) {
 
 	thisdata[,phenoStartIdx:ncol(thisdata)] = pheno
 
-	testContinuous2(varName, currentVar, varType, thisdata)
+	testContinuous2(varName, currentVar, varType, thisdata, fullVar)
 
 }
 
 # Main code used to process continuous fields, or integer fields that have been reassigned as continuous because they have >20 distinct values.
 # This is needed because we have already reassigned values for integer fields, so do this in the function above for continuous fields.
-testContinuous2 <- function(varName, currentVar, varType, thisdata) {
+testContinuous2 <- function(varName, currentVar, varType, thisdata, fullVar=NULL) {
 	cat("CONTINUOUS || ");
 
 	pheno = thisdata[,phenoStartIdx:ncol(thisdata)]
@@ -43,15 +43,14 @@ testContinuous2 <- function(varName, currentVar, varType, thisdata) {
 
 	if (!is.null(dim(pheno))) {
 		phenoAvg = rowMeans(pheno, na.rm=TRUE)
-	}
-	else {
+	} else {
 		phenoAvg = pheno
 	}
 
 	## recode NaN to NA, which is generated if all cols of pheno are NA for a given person
 	idxNan = which(is.nan(phenoAvg))
 	phenoAvg[idxNan] = NA;
-	numNotNA=length(na.omit(phenoAvg));
+	numNotNA = length(na.omit(phenoAvg));
 
 	## check whether >20% examples with same value
 	uniqVar = unique(na.omit(phenoAvg))
@@ -94,8 +93,8 @@ testContinuous2 <- function(varName, currentVar, varType, thisdata) {
 				thisdatanew = cbind.data.frame(thisdata[,1:numPreceedingCols], phenoFactor);
 				binaryLogisticRegression(varName, currentVar, varType, thisdatanew, isExposure);
 			}
-		}
-		else {
+
+		} else {
 			## try to treat as ordered categorical
 
 			incrementCounter("cont.ordcattry")
@@ -114,8 +113,7 @@ testContinuous2 <- function(varName, currentVar, varType, thisdata) {
 				incrementCounter("cont.ordcattry.ordcat")
 				thisdatanew = cbind.data.frame(thisdata[,1:numPreceedingCols], phenoBinned);
 				testCategoricalOrdered(varName, currentVar, varType, thisdatanew);
-			}
-			else {
+			} else {
 				# try to treat as binary because not enough examples in each bin
 
 				if (bin0Num<opt$mincase & bin2Num<opt$mincase) {
@@ -123,8 +121,7 @@ testContinuous2 <- function(varName, currentVar, varType, thisdata) {
 					## ie. could merge bin1 with bin 2 but then bin3 still too small etc
 					cat("SKIP 2 bins are too small || ")
 					incrementCounter("cont.ordcattry.smallbins")
-				}
-				else if ((bin0Num<opt$mincase | bin1Num<opt$mincase) & (bin0Num+bin1Num)>=opt$mincase) {
+				} else if ((bin0Num<opt$mincase | bin1Num<opt$mincase) & (bin0Num+bin1Num)>=opt$mincase) {
 
 					# combine first and second bin to create binary variable
 					incrementCounter("cont.ordcattry.binsbinary")
@@ -134,8 +131,7 @@ testContinuous2 <- function(varName, currentVar, varType, thisdata) {
 					# test binary
 					thisdatanew = cbind.data.frame(thisdata[,1:numPreceedingCols], phenoBinned)
 					binaryLogisticRegression(varName, currentVar, varType, thisdatanew, isExposure);
-				}
-				else if ((bin2Num<opt$mincase | bin1Num<opt$mincase) & (bin2Num+bin1Num)>=opt$mincase) {
+				} else if ((bin2Num<opt$mincase | bin1Num<opt$mincase) & (bin2Num+bin1Num)>=opt$mincase) {
 
 					# combine second and last bin to create binary variable
 					incrementCounter("cont.ordcattry.binsbinary")
@@ -145,10 +141,7 @@ testContinuous2 <- function(varName, currentVar, varType, thisdata) {
 					# test binary
 					thisdatanew = cbind.data.frame(thisdata[,1:numPreceedingCols], phenoBinned)
 					binaryLogisticRegression(varName, currentVar, varType, thisdatanew, isExposure)
-				}
-
-
-				else {
+				} else {
 					## skip - not possible to create binary variable because combining bins would still be too small
 					cat("SKIP 2 bins are too small(2) || ")
 					incrementCounter("cont.ordcattry.smallbins2")
@@ -157,8 +150,7 @@ testContinuous2 <- function(varName, currentVar, varType, thisdata) {
 			}
 
 		}
-	}
-	else {
+	} else {
 		cat("IRNT || ");
 		incrementCounter("cont.main")
 
@@ -167,84 +159,89 @@ testContinuous2 <- function(varName, currentVar, varType, thisdata) {
 		if (numNotNA<500) {
 			cat("CONTINUOUS-SKIP-500 (", numNotNA, ") || ",sep="");
 			incrementCounter("cont.main.500")
-		}
-		else {
+		} else {
 			## inverse rank normal transformation
 			phenoIRNT = irnt(phenoAvg)
 
 			if (opt$save == TRUE) {
 				# add pheno to dataframe
-				storeNewVar(thisdata[,"userID"], phenoIRNT, varName, 'cont')
+				#storeNewVar(thisdata[,"userID"], phenoIRNT, varName, 'cont')
+				if ( !is.null(fullVar) ){
+					storeNewVar(thisdata[,"userID"], phenoAvg, fullVar, 'cont')
+				} else {
+					storeNewVar(thisdata[,"userID"], phenoAvg, currentVar, 'cont')
+				}
 				cat("SUCCESS results-linear");
 				incrementCounter("success.continuous")
 			}
-			else {
 
-				## do regression (use standardised geno values)
-				if (opt$standardise==TRUE) {
-					geno = scale(thisdata[,"geno"])
-				}
-				else {
-					geno = thisdata[,"geno"]
-				}
-				confounders=thisdata[,3:numPreceedingCols, drop = FALSE]
+			## do regression (use standardised geno values)
+			if (opt$standardise == TRUE) {
+				geno = scale(thisdata[,"geno"])
+			} else {
+				geno = thisdata[,"geno"]
+			}
+			confounders=thisdata[,3:numPreceedingCols, drop = FALSE]
+
+			sink()
+			sink(modelFitLogFile, append=TRUE)
+			print("--------------")
+			print(varName)
+
+			###### BEGIN TRYCATCH
+			tryCatch({
+
+				print(head(phenoIRNT))
+				print(mean(phenoIRNT))
+				print(sd(phenoIRNT))
+				print('-------')
+				print(head(geno))
+				print(mean(geno))
+				print(sd(phenoIRNT))
+				print('-------')
+				print(head(confounders))
+				fit <- lm(phenoIRNT ~ geno + ., data=confounders)
 
 				sink()
-				sink(modelFitLogFile, append=TRUE)
-				print("--------------")
-				print(varName)
+				sink(resLogFile, append=TRUE)
 
-				###### BEGIN TRYCATCH
-				tryCatch({
+				sumx = summary(fit)
 
-					print(head(phenoIRNT))
-					print(mean(phenoIRNT))
-					print(sd(phenoIRNT))
-					print('-------')
-					print(head(geno))
-					print(mean(geno))
-					print(sd(phenoIRNT))
-					print('-------')
-					print(head(confounders))
-					fit <- lm(phenoIRNT ~ geno + ., data=confounders)
+				pvalue = sumx$coefficients['geno','Pr(>|t|)']
+				beta = sumx$coefficients["geno","Estimate"]
 
-					sink()
-					sink(resLogFile, append=TRUE)
+				if (opt$confidenceintervals == TRUE) {
+					cis = confint(fit, level=0.95)
+					lower = cis["geno", "2.5 %"]
+					upper = cis["geno", "97.5 %"]
+				} else {
+					lower = NA
+					upper = NA
+				}
 
-					sumx = summary(fit)
+				numNotNA = length(which(!is.na(phenoIRNT)))
 
-					pvalue = sumx$coefficients['geno','Pr(>|t|)']
-					beta = sumx$coefficients["geno","Estimate"]
-
-					if (opt$confidenceintervals == TRUE) {
-						cis = confint(fit, level=0.95)
-						lower = cis["geno", "2.5 %"]
-						upper = cis["geno", "97.5 %"]
-					}
-					else {
-						lower = NA
-						upper = NA
-					}
-
-					numNotNA = length(which(!is.na(phenoIRNT)))
-
-					## save result to file
+				## save result to file
+				if ( !is.null(fullVar) ){
+					write(paste(paste0("\"", varName, "\""), paste0("\"", fullVar, "\""), varType, numNotNA, beta, lower, upper, pvalue, sep=","), file=paste(opt$resDir,"results-linear-",opt$varTypeArg,".txt", sep=""), append="TRUE");
+				} else {
 					write(paste(paste0("\"", varName, "\""), paste0("\"", currentVar, "\""), varType, numNotNA, beta, lower, upper, pvalue, sep=","), file=paste(opt$resDir,"results-linear-",opt$varTypeArg,".txt", sep=""), append="TRUE");
-					cat("SUCCESS results-linear");
+				}
+				cat("SUCCESS results-linear");
 
-					incrementCounter("success.continuous")
-					if (isExposure == TRUE) {
-						incrementCounter("success.exposure.continuous")
-					}
+				incrementCounter("success.continuous")
+				if (isExposure == TRUE) {
+					incrementCounter("success.exposure.continuous")
+				}
 
-					## END TRYCATCH
-				}, error = function(e) {
-					sink()
-					sink(resLogFile, append=TRUE)
-					cat(paste("ERROR:", varName, gsub("[\r\n]", "", e), sep=" "))
-					incrementCounter("continuous.error")
-				})
-			}
+				## END TRYCATCH
+			}, error = function(e) {
+				sink()
+				sink(resLogFile, append=TRUE)
+				cat(paste("ERROR:", varName, gsub("[\r\n]", "", e), sep=" "))
+				incrementCounter("continuous.error")
+			})
+
 		}
 	}
 }

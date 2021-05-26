@@ -21,78 +21,80 @@
 
 loadConfounders <- function(phenotypes) {
 
-	if (opt$save==TRUE) {
+	#if (opt$save==TRUE) {
 
-		# saving not running tests so we add a fake confounder
-		numRows = nrow(phenotypes)
-		data = cbind.data.frame(phenotypes$userID, rep(-1, numRows))
-		colnames(data)[1] <- "userID"
-		colnames(data)[2] <- "conf1"
-		return(data)
+	# saving not running tests so we add a fake confounder
+	#	numRows = nrow(phenotypes)
+	#	data = cbind.data.frame(phenotypes$userID, rep(-1, numRows))
+	#	colnames(data)[1] <- "userID"
+	#	colnames(data)[2] <- "conf1"
+	#	return(data)
+
+	#} else {
+
+	if (!is.null(opt$confounderfile)) {
+		print("Loading confounders from confounder file ...")
+
+		confs = fread(opt$confounderfile, sep=',', header=TRUE, data.table=FALSE)
+		confs = lapply(confs,function(x) type.convert(as.character(x)))
+		confs = as.data.frame(confs)
+		colnames(confs) = gsub(opt$userId, 'userID', colnames(confs))
+
+		## find userID column and change name to userID
+		#idx   = which(names(confs) == opt$userId)
+		#confs = confs[,c(opt$userID,setdiff(colnames(confs),opt$userID))]
+		#colnames(confs)[1] = "userID"
+		return(confs)
 
 	} else {
+		print("Loading confounders from phenotypes file ...")
+		confNames = getConfounderNames()
 
-		if (!is.null(opt$confounderfile)) {
-			print("Loading confounders from confounder file ...")
-
-			confs = fread(opt$confounderfile, sep=',', header=TRUE, data.table=FALSE)
-			confs = lapply(confs,function(x) type.convert(as.character(x)))
-			confs = as.data.frame(confs)
-
-			## find userID column and change name to userID
-			idx = which(colnames(confs) == opt$userId)
-			confs = confs[,c(opt$userID,setdiff(colnames(confs),opt$userID))]
-			colnames(confs)[1] <- "userID"
-
-		} else {
-			print("Loading confounders from phenotypes file ...")
-			confNames = getConfounderNames()
-
-			sepx=','
-			if (opt$tab == TRUE) {
-				sepx='\t'
-			}
-
-			#####
-			##### extract confounders from data file
-			confs = fread(opt$phenofile, select=confNames, sep=sepx, header=TRUE, data.table=FALSE)
-			confs = lapply(confs,function(x) type.convert(as.character(x)))
-			confs = as.data.frame(confs)
-
-			#####
-			##### process genetic batch to create genetic chip variable
-			if (opt$genetic == TRUE) {
-				genoBatch = confs[,"x22000_0_0"]
-
-				# chip comes from batch field 22000
-				genoChip = rep.int(NA,nrow(confs));
-				idxForVar = which(genoBatch<0);
-				genoChip[idxForVar] = 0;
-				idxForVar = which(genoBatch>=0 & genoBatch<2000);
-				genoChip[idxForVar] = 1;
-
-				# remove geno batch from and add geno chip to confounders
-				confs = confs[,-which(names(confs) == "x22000_0_0")]
-				confs = cbind.data.frame(confs, genoChip)
-			}
-
-			center_var = paste0('x54_', opt$visit, '_0')
-
-			confs =confs[!is.na(confs[[center_var]]),]
-
-			#####
-			##### Convert assessment centre to an indicator variable
-			if (opt$sensitivity==TRUE) {
-				confs[[center_var]] = as.factor(confs[[center_var]])
-				assCentre = model.matrix(~confs[[center_var]])
-				assCentre = assCentre[,2:ncol(assCentre)]
-				confs = cbind(confs, assCentre)
-				confs[[center_var]] = NULL
-			}
-
-			colnames(confs)[1] <- "userID"
-
+		sepx=','
+		if (opt$tab == TRUE) {
+			sepx='\t'
 		}
+
+		#####
+		##### extract confounders from data file
+		confs = fread(opt$phenofile, select=confNames, sep=sepx, header=TRUE, data.table=FALSE)
+		confs = lapply(confs,function(x) type.convert(as.character(x)))
+		confs = as.data.frame(confs)
+
+		#####
+		##### process genetic batch to create genetic chip variable
+		if (opt$genetic == TRUE) {
+			genoBatch = confs[,"x22000_0_0"]
+
+			# chip comes from batch field 22000
+			genoChip = rep.int(NA,nrow(confs));
+			idxForVar = which(genoBatch<0);
+			genoChip[idxForVar] = 0;
+			idxForVar = which(genoBatch>=0 & genoBatch<2000);
+			genoChip[idxForVar] = 1;
+
+			# remove geno batch from and add geno chip to confounders
+			confs = confs[,-which(names(confs) == "x22000_0_0")]
+			confs = cbind.data.frame(confs, genoChip)
+		}
+
+		center_var = paste0('x54_', opt$visit, '_0')
+
+		confs =confs[!is.na(confs[[center_var]]),]
+
+		#####
+		##### Convert assessment centre to an indicator variable
+		if (opt$sensitivity==TRUE) {
+			confs[[center_var]] = as.factor(confs[[center_var]])
+			assCentre = model.matrix(~confs[[center_var]])
+			assCentre = assCentre[,2:ncol(assCentre)]
+			confs = cbind(confs, assCentre)
+			confs[[center_var]] = NULL
+		}
+
+		colnames(confs)[1] <- "userID"
+
+		#	}
 
 		# remove any rows with no values
 		print(paste("Number of rows in confounder data: ", nrow(confs),sep=""))
